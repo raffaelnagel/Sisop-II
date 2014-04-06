@@ -1,59 +1,92 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct{
+		int lines;
+		int columns;
+		int *matrix;
+} matrix_t;
 
-void main(int argc, char argv[]){
-	
-	int M1_linhas,M1_colunas, M2_linhas, M2_colunas,i, j, temp;
-	
-	FILE *input = fopen("ini1.txt", "r");
-	
-	fscanf(input, "LINHAS = %d\n", &M1_linhas);
-	fscanf(input, "COLUNAS = %d\n", &M1_colunas);
-	
-	int m1[M1_linhas][M1_colunas];
-	
-	for(i = 0; i < M1_linhas; ++i){
-			for(j = 0; j < M1_colunas; ++j){
-				fscanf(input, "%d", &temp);
-				m1[i][j] = temp;
+void setMatrixValue(matrix_t *mMatrix, int line, int column, int value){
+		mMatrix->matrix[line * 10 + column] = value;
+}
+
+int getMatrixValue(matrix_t *mMatrix, int line, int column){
+		return mMatrix->matrix[line * 10 + column];
+}
+
+matrix_t *readMatrix(char *filename){
+		matrix_t *mMatrix = calloc(1, sizeof(matrix_t));
+		int lines, columns;
+		int i,j, tmp;
+		
+		FILE *input = fopen(filename, "r");
+		
+		if(input == NULL){
+			printf("File Error!");
+			exit(1);
+		}
+		
+		fscanf(input, "LINHAS = %d\n", &lines);
+		fscanf(input, "COLUNAS = %d\n", &columns);
+		
+		mMatrix->lines = lines;
+		mMatrix->columns = columns;
+		mMatrix->matrix = calloc(mMatrix->lines*mMatrix->columns, sizeof(int));
+		
+		for(i = 0; i < lines; ++i){
+			for(j = 0; j < columns; ++j){
+				fscanf(input, "%d", &tmp);
+				setMatrixValue(mMatrix, i, j, tmp);
 			}
-	}	
-	fclose(input);	
-	FILE *input2 = fopen("ini2.txt", "r");
-	
-	fscanf(input2, "LINHAS = %d\n", &M2_linhas);
-	fscanf(input2, "COLUNAS = %d\n", &M2_colunas);
-	
-	int m2[M2_linhas][M2_colunas];
-	
-	for(i = 0; i < M2_linhas; ++i){
-			for(j = 0; j < M2_colunas; ++j){
-				fscanf(input2, "%d", &temp);
-				m2[i][j] = temp;
-			}
-	}	
-	fclose(input);	
+		}
+		
+		fclose(input);
+		return mMatrix;
+}
 
+void writeMatrix(char *filename, matrix_t mMatrix){
+	FILE *output = fopen(filename, "w+");
+	int i,j;
+	
+	if(output == NULL){
+		printf("File Error!");
+		exit(1);
+	}
+	
+	fprintf(output, "LINHAS = %d\n", mMatrix.lines);
+	fprintf(output, "COLUNAS = %d\n", mMatrix.columns);
+	
+	for(i = 0; i < mMatrix.lines; ++i){
+		for(j = 0; j < mMatrix.columns; ++j){
+			fprintf(output, "%d ", getMatrixValue(&mMatrix, i, j));
+		}
+		fprintf(output, "\n");
+	}
+	fclose(output);
+}
 
-	
-	//PRINT
-	
-	printf("\n\n--M1--\n");
-	for(i=0; i < M1_linhas; ++i){
-		for(j=0; j < M1_colunas; ++j){
-			printf("%d ", m1[i][j]);
+void printMatrix(matrix_t mMatrix){
+	int i,j;
+	for(i = 0; i < mMatrix.lines; ++i){
+		for(j = 0; j < mMatrix.columns; ++j){
+			printf("%d ", getMatrixValue(&mMatrix, i, j));
 		}
 		printf("\n");
 	}
-	printf("\n\n--M2--\n");
-	for(i=0; i < M2_linhas; ++i){
-		for(j=0; j < M2_colunas; ++j){
-			printf("%d ", m2[i][j]);
-		}
-		printf("\n");
-	}
+}
+int main(int argc, char *argv[]){
+	
+	
+	matrix_t *MA = readMatrix("ini1.txt");	
+	//matrix_t *MB = readMatrix("ini2.txt");
+	
+	writeMatrix("out.txt", *MA);
+	
+	printMatrix(*MA);
+	//printMatrix(*MB);
 	
 	
 	
+	return 0;
 }
