@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
+#include <math.h>
 #define tamanhoAmostra 10
 
 typedef struct {
@@ -123,6 +125,17 @@ void init(int argc, char** argv);
 
 void* worker(void* args);
 
+
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = diff / 1000000;
+    result->tv_usec = diff % 1000000;
+
+    return (diff<0);
+}
+
+
 int main(int argc, char** argv)
 {
 	int i,j;
@@ -133,7 +146,10 @@ int main(int argc, char** argv)
 	init(argc,argv);
 
 	//get time here
-
+	struct timeval tvBegin, tvEnd, tvDiff;
+	gettimeofday(&tvBegin, NULL);
+   
+	
 	printf("starting...\n");	
 	
 	threads = (pthread_t*)malloc(numThreads*sizeof(*threads));
@@ -154,11 +170,13 @@ int main(int argc, char** argv)
     free(obj);
     
 	//get time here
+	gettimeofday(&tvEnd, NULL);    
 	
 	printf("finish\n");
 	
 	//print time diff
-	
+	timeval_subtract(&tvDiff, &tvEnd, &tvBegin);
+    printf("\n\tTime elapsed = %ld.%06ld\n", tvDiff.tv_sec, tvDiff.tv_usec);
 	
     writeMatrix("out.txt",matrixResult,mResultlines,mResultcolumns);
 
