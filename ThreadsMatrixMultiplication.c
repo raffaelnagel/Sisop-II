@@ -149,16 +149,15 @@ int main(int argc, char** argv)
 
 	obj = (object*)malloc(numThreads*sizeof(object));
 
-	//for(i = 0; i < tamanhoAmostra; i++){		
-		for(j = 0; j < numThreads; j++){
+	for(j = 0; j < numThreads; j++){
 			obj[j].id = j;	
 			pthread_create(&threads[j],&pthread_custom_attr,worker,(void*)&obj[j]);
-		}	
-		//JOIN
-		for(j = 0; j < numThreads; j++){
+	}	
+	//JOIN
+	for(j = 0; j < numThreads; j++){
 			pthread_join(threads[j],NULL);
-		}
-	//}
+	}
+	
     free(obj);
     
 	//get time here
