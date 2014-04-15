@@ -6,14 +6,84 @@
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
-#define tamanhoAmostra 10
 
 typedef struct {
 	int id;
 } object;
 
-int readMatrix(const char *filename, int *linesCount, int *columnsCount, int ***resultMatrix)
-{
+
+int ** matrixA;         
+int ** matrixB;  
+int ** matrixResult;
+
+int mAlines, mAcolumns;  
+int mBlines, mBcolumns;  
+int mResultlines, mResultcolumns; 
+
+int numThreads;
+int readMatrix(const char *filename, int *linesCount, int *columnsCount, int ***resultMatrix);
+int writeMatrix(char* filename, int** matriz, int linesCount, int columnsCount);
+void printMatrix(int** mMatrix, int lines, int columns);
+int  multiplyLineColumn(int* lineValue, int* columnValue, int size);
+void getLineValues(int** mat, int numColunas, int indiceLinha, int* out);
+void getColumnValues(int** mat, int numLinhas, int indiceColuna, int* out);
+void init(int argc, char** argv);
+void* ThreadFunction(void* args);
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1);
+
+
+int main(int argc, char** argv){
+	
+	int i;
+	pthread_t* mThreads;
+	pthread_attr_t mThreadAttribute;
+	object* obj;
+
+	init(argc,argv);
+
+
+    int j;
+    for(j=0; j < 10; j++){
+
+	//get time here
+	struct timeval tvBegin, tvEnd, tvDiff;
+	gettimeofday(&tvBegin, NULL);
+   
+	
+	//printf("starting...\n");
+	
+	mThreads = (pthread_t*) malloc( numThreads*sizeof(*mThreads) );
+	pthread_attr_init(&mThreadAttribute);
+
+	obj = (object*)malloc(numThreads*sizeof(object));
+
+	for(i = 0; i < numThreads; i++){
+			obj[i].id = i;	
+			pthread_create(&mThreads[i], &mThreadAttribute, ThreadFunction, (void*)&obj[i]);
+	}	
+	
+	//JOIN
+	for(i = 0; i < numThreads; i++){
+			pthread_join(mThreads[i],NULL);
+	}
+	
+    free(obj);
+    
+	//get time here
+	gettimeofday(&tvEnd, NULL);  
+	
+	//printf("finish\n");		
+	
+	//print time diff
+	timeval_subtract(&tvDiff, &tvEnd, &tvBegin);
+    printf("\n\tTime elapsed = %ld.%06ld\n", tvDiff.tv_sec, tvDiff.tv_usec);
+	}
+    //writeMatrix("out.txt",matrixResult,mResultlines,mResultcolumns);
+
+	return 1;
+}
+
+int readMatrix(const char *filename, int *linesCount, int *columnsCount, int ***resultMatrix){
   FILE *inputFile = NULL;
   char stringBuffer[1048576], tmpBuffer[1048576]; 
   int i,j;
@@ -76,8 +146,7 @@ int readMatrix(const char *filename, int *linesCount, int *columnsCount, int ***
   return 1; //ok
 }
 
-int writeMatrix(char* filename, int** matriz, int linesCount, int columnsCount)
-{
+int writeMatrix(char* filename, int** matriz, int linesCount, int columnsCount){
 	FILE* outputFile = NULL;
 	int i, j;
 
@@ -100,78 +169,6 @@ int writeMatrix(char* filename, int** matriz, int linesCount, int columnsCount)
 
 	fclose(outputFile);
 	return 0;
-}
-
-int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1){
-    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
-    result->tv_sec = diff / 1000000;
-    result->tv_usec = diff % 1000000;
-
-    return (diff<0);
-}
-
-int ** matrixA;         
-int ** matrixB;  
-int ** matrixResult;
-
-int mAlines, mAcolumns;  
-int mBlines, mBcolumns;  
-int mResultlines, mResultcolumns; 
-
-int numThreads;
-
-void printMatrix(int** mMatrix, int lines, int columns);
-int  multiplyLineColumn(int* lineValue, int* columnValue, int size);
-void getLineValues(int** mat, int numColunas, int indiceLinha, int* out);
-void getColumnValues(int** mat, int numLinhas, int indiceColuna, int* out);
-void init(int argc, char** argv);
-void* worker(void* args);
-
-
-int main(int argc, char** argv)
-{
-	int i,j;
-	pthread_t* threads;
-	pthread_attr_t pthread_custom_attr;
-	object* obj;
-
-	init(argc,argv);
-
-	//get time here
-	struct timeval tvBegin, tvEnd, tvDiff;
-	gettimeofday(&tvBegin, NULL);
-   
-	
-	printf("starting...\n");	
-	
-	threads = (pthread_t*)malloc(numThreads*sizeof(*threads));
-	pthread_attr_init(&pthread_custom_attr);
-
-	obj = (object*)malloc(numThreads*sizeof(object));
-
-	for(j = 0; j < numThreads; j++){
-			obj[j].id = j;	
-			pthread_create(&threads[j],&pthread_custom_attr,worker,(void*)&obj[j]);
-	}	
-	//JOIN
-	for(j = 0; j < numThreads; j++){
-			pthread_join(threads[j],NULL);
-	}
-	
-    free(obj);
-    
-	//get time here
-	gettimeofday(&tvEnd, NULL);    
-	
-	printf("finish\n");
-	
-	//print time diff
-	timeval_subtract(&tvDiff, &tvEnd, &tvBegin);
-    printf("\n\tTime elapsed = %ld.%06ld\n", tvDiff.tv_sec, tvDiff.tv_usec);
-	
-    writeMatrix("out.txt",matrixResult,mResultlines,mResultcolumns);
-
-	return 1;
 }
 
 void printMatrix(int** mMatrix, int lines, int columns){
@@ -242,8 +239,7 @@ void init(int argc, char** argv){
   }
 }
 
-void* worker(void *args)
-{
+void* ThreadFunction(void *args){
   int i,j;
   object *obj=(object *)args; 
   int threadId = obj->id;
@@ -265,4 +261,10 @@ void* worker(void *args)
   return (NULL);
 }
 
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1){
+    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = diff / 1000000;
+    result->tv_usec = diff % 1000000;
 
+    return (diff<0);
+}
